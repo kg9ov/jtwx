@@ -7,12 +7,17 @@ import java.util.Date;
 
 import org.jtdev.jtwx.WeatherReading;
 import org.jtdev.jtwx.WeatherReadingBuilder;
+import org.jtdev.jtwx.WeatherStation;
+import org.jtdev.jtwx.WeatherStationException;
 
 import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
+import gnu.io.NoSuchPortException;
+import gnu.io.PortInUseException;
 import gnu.io.SerialPort;
+import gnu.io.UnsupportedCommOperationException;
 
-public class Davis {
+public class Davis implements WeatherStation {
 
 	private String portName;
 
@@ -59,32 +64,52 @@ public class Davis {
 	private static final int LOOP_TYPE_1 = 1;
 	private static final int LOOP_TYPE_2 = 2;
 	
-	public Davis(String portName) {
+	public Davis() {
 		super();
-		this.portName = portName;
 	}
 
-	public void connect() throws Exception {
-		CommPortIdentifier portIdentifier = CommPortIdentifier
-				.getPortIdentifier(portName);
-		if (portIdentifier.isCurrentlyOwned()) {
-			throw new Exception("Error: Port is currently in use");
-		} else {
-			CommPort commPort = portIdentifier.open(this.getClass().getName(),
-					2000);
+	
+	@Override
+	public void setParameter(String param, String value)
+			throws IllegalArgumentException, WeatherStationException {
+		
+		if (param == null || value == null) {
+			throw new IllegalArgumentException("Null args not allowed");
+		}
+		
+		if (param.equals("port")) {
+			this.portName = value;
+		}
+	}
 
-			if (commPort instanceof SerialPort) {
-				serialPort = (SerialPort) commPort;
-				serialPort.setSerialPortParams(19200, SerialPort.DATABITS_8,
-						SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
-				input = new BufferedInputStream(serialPort.getInputStream());
-				output = serialPort.getOutputStream();
+	@Override
+	public void connect() throws WeatherStationException {
+		try {
+			CommPortIdentifier portIdentifier = 
+					CommPortIdentifier.getPortIdentifier(portName);
+			if (portIdentifier.isCurrentlyOwned()) {
+				throw new WeatherStationException("Error: Port is currently in use");
+			} else {
+				CommPort commPort = portIdentifier.open(this.getClass().getName(), 2000);
+
+				if (commPort instanceof SerialPort) {
+					serialPort = (SerialPort) commPort;
+					serialPort.setSerialPortParams(19200, SerialPort.DATABITS_8,
+									SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+
+					input = new BufferedInputStream(serialPort.getInputStream());
+					output = serialPort.getOutputStream();
+				}
 			}
+		} catch (NoSuchPortException | PortInUseException
+				| UnsupportedCommOperationException | IOException e) {
+			throw new WeatherStationException(e);
 		}
 	}
 	
-	public void disconnect() {
+	@Override
+	public void disconnect() throws WeatherStationException {
 		try {
 			if (output != null) output.close();
 			if (input != null) input.close();
@@ -95,10 +120,18 @@ public class Davis {
 		if (serialPort != null) serialPort.close();
 	}
 
-	public WeatherReading getWeatherReading() throws Exception {
-		wakeup();
-//		byte[] loop1 = executeLps(LOOP_TYPE_1);
-		byte[] loop2 = executeLps(LOOP_TYPE_2);
+	@Override
+	public WeatherReading getWeatherReading() throws WeatherStationException {
+//		byte[] loop1;
+		byte[] loop2;
+		
+		try {
+			wakeup();
+//			loop1 = executeLps(LOOP_TYPE_1);
+			loop2 = executeLps(LOOP_TYPE_2);
+		} catch (IOException e) {
+			throw new WeatherStationException(e);
+		}
 		
 		WeatherReading wr = new WeatherReadingBuilder()
 				// use the current system date/time for this reading
@@ -144,7 +177,7 @@ public class Davis {
 	}
 	
 	
-	private void wakeup() throws Exception {
+	private void wakeup() throws WeatherStationException, IOException {
 
 		String cmd = "\n";
 
@@ -156,7 +189,11 @@ public class Davis {
 			output.write(cmd.getBytes("US-ASCII"));
 			// wait up to 1500ms for a response
 			for (int j = 0; j < 300; j++) {
-				Thread.sleep(5L);
+				try {
+					Thread.sleep(5L);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
 				if (input.available() >= 2) {
 					byte[] b = new byte[2];
 					input.read(b, 0, b.length);
@@ -170,10 +207,10 @@ public class Davis {
 		}
 		
 		// if we get this far we failed
-		throw new Exception("Unable to wakeup weather station");
+		throw new WeatherStationException("Unable to wakeup weather station");
 	}
 
-	private byte[] executeLps(int type) throws Exception {
+	private byte[] executeLps(int type) throws WeatherStationException, IOException {
 		
 		// determine which loop command to send
 		String cmd;
@@ -198,7 +235,8 @@ public class Davis {
 		for (int i = 0; i < 300; i++) {
 			try {
 				Thread.sleep(10L);
-			} catch (Exception e) {
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
 			
 			if (input.available() == 100) {
@@ -208,12 +246,12 @@ public class Davis {
 
 		// make sure we got a full response
 		if (input.available() != 100) {
-			throw new Exception("Invalid or no response to LPS command");
+			throw new WeatherStationException("Invalid or no response to LPS command");
 		}
 
 		// make sure we got the ACK
 		if (input.read() != 6) {
-			throw new Exception("Weather station did not ACK our command");
+			throw new WeatherStationException("Weather station did not ACK our command");
 		}
 
 		// read the data packet
@@ -223,7 +261,7 @@ public class Davis {
 		// validate the CRC
 		byte[] crc = calculateCrc(data, 0, 97);
 		if (crc[0] != data[97] || crc[1] != data[98]) {
-			throw new Exception("Received data failed CRC check");
+			throw new WeatherStationException("Received data failed CRC check");
 		}
 		
 		// all good!
