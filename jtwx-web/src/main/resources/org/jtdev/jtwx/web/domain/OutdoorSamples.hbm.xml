@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+      "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+          "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+          
+<hibernate-mapping package="org.jtdev.jtwx.web.domain">
+
+	<class name="OutdoorSample" table="outdoor_samples">
+		<id name="id" type="long" column="id">
+			<generator class="sequence">
+				<param name="sequence">outdoor_samples_id_seq</param>
+			</generator>
+		</id>
+		<property name="date" type="timestamp" column="sample_dt" />
+		<property name="temperature" type="float" column="temperature" />
+		<property name="humidity" type="float" column="humidity" />
+		<property name="windSpeed" type="float" column="wind_speed" />
+		<property name="windDirection" type="float" column="wind_direction" />
+		<property name="rainDay" type="float" column="rain_day" />
+		<property name="rainMonth" type="float" column="rain_month" />
+		<property name="rainYear" type="float" column="rain_year" />
+		<property name="rain60Min" type="float" column="rain_60_min" />
+		<property name="windGust10Min" type="float" column="wind_gust_10_min" />
+		<property name="windGust10MinDirection" type="float" column="wind_gust_10_min_direction" />
+		<property name="windAvgSpeed2Min" type="float" column="wind_avg_speed_2_min" />
+		<property name="windAvgSpeed10Min" type="float" column="wind_avg_speed_10_min" />
+		<property name="barometer" type="float" column="barometer" />
+		<property name="dewPoint" type="float" column="dew_point" />
+	</class>
+
+</hibernate-mapping>
