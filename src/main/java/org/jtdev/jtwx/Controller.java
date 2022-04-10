@@ -5,23 +5,40 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
-import org.apache.commons.daemon.Daemon;
-import org.apache.commons.daemon.DaemonContext;
-import org.apache.commons.daemon.DaemonInitException;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
-public class Controller extends Observable implements Daemon, Runnable {
+@Component
+public class Controller extends Observable implements Runnable {
 	
 	private final Logger logger = LoggerFactory.getLogger(Controller.class);
 	
-	private Thread controllerThread;
+	private Config config;
 	private volatile boolean shutdown = false;
+	
+	public Controller(Config config) {
+		this.config = config;
+	}
+
+	@PostConstruct
+	public void postConstruct() {
+		logger.info("Starting Controller thread");
+		new Thread(this, this.getClass().getSimpleName()).start();
+	}
+	
+	@PreDestroy
+	public void preDestroy() {
+		logger.info("Stopping Controller thread");
+		shutdown = true;
+	}
 	
 	@Override
 	public void run() {
-		Config config = Config.load();
-						
 		logger.info("init weather station");
 		WeatherStation ws = initInput(config);
 		if (ws == null) {
@@ -78,29 +95,8 @@ public class Controller extends Observable implements Daemon, Runnable {
 		logger.info("controller thread exiting");
 	}
 
-	@Override
-	public void destroy() {
-		
-	}
-
-	@Override
-	public void init(DaemonContext daemonContext) throws DaemonInitException, Exception {
-		controllerThread = new Thread(this, this.getClass().getSimpleName());
-	}
-
-	@Override
-	public void start() throws Exception {
-		controllerThread.start();
-	}
-
-	@Override
-	public void stop() throws Exception {
-		this.shutdown = true;
-		controllerThread.join();
-	}
-	
 	private WeatherStation initInput(Config config) {
-		String className = config.input.className;
+		String className = config.getInput().getClassName();
 		WeatherStation ws = null;
 		
 		try {
@@ -116,11 +112,11 @@ public class Controller extends Observable implements Daemon, Runnable {
 			return null;
 		}
 		
-		for (Config.Parameter p : config.input.parameters) {
+		for (Config.Parameter p : config.getInput().getParameters()) {
 			try {
-				ws.setParameter(p.param, p.value);
+				ws.setParameter(p.getParam(), p.getValue());
 			} catch (IllegalArgumentException | WeatherStationException e) {
-				logger.error("Input set parameter failed for: {}", p.param, e);
+				logger.error("Input set parameter failed for: {}", p.getParam(), e);
 				return null;
 			}
 		}
@@ -131,26 +127,26 @@ public class Controller extends Observable implements Daemon, Runnable {
 	private List<WeatherReadingObserver> initOutputs(Config config) {
 		List<WeatherReadingObserver> wroList = new ArrayList<WeatherReadingObserver>();
 		
-		for (Config.Output output : config.outputs) {
+		for (Config.Output output : config.getOutputs()) {
 			WeatherReadingObserver wro;
 			try {
-				Class<?> clazz = Class.forName(output.className);
+				Class<?> clazz = Class.forName(output.getClassName());
 				Constructor<?> constructor = clazz.getConstructor();
 				wro = (WeatherReadingObserver) constructor.newInstance();
 			} catch (ClassNotFoundException | NoSuchMethodException
 					| SecurityException | InstantiationException
 					| IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException e) {
-				logger.error("Failed to load output class: {}", output.className, e);
+				logger.error("Failed to load output class: {}", output.getClassName(), e);
 				return null;
 			}
 
-			if (output.parameters != null) {
-				for (Config.Parameter p : output.parameters) {
+			if (output.getParameters() != null) {
+				for (Config.Parameter p : output.getParameters()) {
 					try {
-						wro.setParameter(p.param, p.value);
+						wro.setParameter(p.getParam(), p.getValue());
 					} catch (Exception e) {
-						logger.error("output {} set parameter failed for: {}", output.className, p.param, e);
+						logger.error("output {} set parameter failed for: {}", output.getClassName(), p.getParam(), e);
 						return null;
 					}
 				}
@@ -159,7 +155,7 @@ public class Controller extends Observable implements Daemon, Runnable {
 			try {
 				wro.initialize();
 			} catch (Exception e) {
-				logger.error("initialize() failed for {}", output.className, e);
+				logger.error("initialize() failed for {}", output.getClassName(), e);
 				return null;
 			}
 			

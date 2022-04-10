@@ -10,12 +10,8 @@ import org.jtdev.jtwx.WeatherReadingBuilder;
 import org.jtdev.jtwx.WeatherStation;
 import org.jtdev.jtwx.WeatherStationException;
 
-import gnu.io.CommPort;
-import gnu.io.CommPortIdentifier;
-import gnu.io.NoSuchPortException;
-import gnu.io.PortInUseException;
-import gnu.io.SerialPort;
-import gnu.io.UnsupportedCommOperationException;
+import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortInvalidPortException;
 
 public class Davis implements WeatherStation {
 
@@ -86,24 +82,12 @@ public class Davis implements WeatherStation {
 	@Override
 	public void connect() throws WeatherStationException {
 		try {
-			CommPortIdentifier portIdentifier = 
-					CommPortIdentifier.getPortIdentifier(portName);
-			if (portIdentifier.isCurrentlyOwned()) {
-				throw new WeatherStationException("Error: Port is currently in use");
-			} else {
-				CommPort commPort = portIdentifier.open(this.getClass().getName(), 2000);
-
-				if (commPort instanceof SerialPort) {
-					serialPort = (SerialPort) commPort;
-					serialPort.setSerialPortParams(19200, SerialPort.DATABITS_8,
-									SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
-
-					input = new BufferedInputStream(serialPort.getInputStream());
-					output = serialPort.getOutputStream();
-				}
-			}
-		} catch (NoSuchPortException | PortInUseException
-				| UnsupportedCommOperationException | IOException e) {
+			serialPort = SerialPort.getCommPort(portName);
+			serialPort.setComPortParameters(19200, 8, SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
+			serialPort.openPort();
+			input = new BufferedInputStream(serialPort.getInputStream());
+			output = serialPort.getOutputStream();
+		} catch (SerialPortInvalidPortException e) {
 			throw new WeatherStationException(e);
 		}
 	}
@@ -117,7 +101,7 @@ public class Davis implements WeatherStation {
 			// TODO Log me
 			e.printStackTrace();
 		}
-		if (serialPort != null) serialPort.close();
+		if (serialPort != null) serialPort.closePort();
 	}
 
 	@Override

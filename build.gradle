@@ -1,4 +1,6 @@
 plugins {
+    id 'org.springframework.boot' version '2.6.6'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
     id 'java'
     id 'eclipse'
 }
@@ -14,19 +16,16 @@ tasks.withType(JavaCompile) {
 
 repositories {
     mavenCentral()
-    flatDir {
-        dirs System.getenv('LOCAL_LIB')
-    }
 }
 
 dependencies {
-    implementation 'org.eclipse.jetty:jetty-client:9.1.0.v20131115'
-    implementation 'commons-daemon:commons-daemon:1.0.15'
-    implementation 'org.slf4j:slf4j-api:1.7.5'
-    implementation 'ch.qos.logback:logback-classic:1.0.13'
-    implementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
-    implementation ':RXTXcomm:2.2pre2'
-    testImplementation 'junit:junit:3.8.1'
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-json'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    implementation 'org.eclipse.jetty:jetty-client'
+    implementation 'com.fazecast:jSerialComm:2.9.1'
 }
 
 tasks.named('test') {

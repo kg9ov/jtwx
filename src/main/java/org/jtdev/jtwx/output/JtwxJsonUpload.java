@@ -7,8 +7,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.util.ISO8601DateFormat;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
@@ -17,6 +15,9 @@ import org.jtdev.jtwx.WeatherReading;
 import org.jtdev.jtwx.WeatherReadingObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
 
 public class JtwxJsonUpload implements WeatherReadingObserver {
 
@@ -88,7 +89,7 @@ public class JtwxJsonUpload implements WeatherReadingObserver {
 		client.start();
 		
 		objectMapper = new ObjectMapper();
-		objectMapper.setDateFormat(new ISO8601DateFormat());
+		objectMapper.setDateFormat(new StdDateFormat());
 	}
 
 	private static class CombinedSample {

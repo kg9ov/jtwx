@@ -1,78 +1,114 @@
 package org.jtdev.jtwx;
 
-import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
 
-@XmlRootElement(name="jtwxConfig")
-@XmlAccessorType(XmlAccessType.NONE)
+@ConfigurationProperties("jtwx")
+@ConstructorBinding
 class Config {
 
-	@XmlElement(name="controller", required=true)
-	ControllerConfig controllerConfig;
+	private final ControllerConfig controller;
 	
-	@XmlElement(name="input", required=true)
-	Input input;
+	private final Input input;
 	
-	@XmlElement(name="output", required=true)
-	List<Output> outputs;
+	private final List<Output> outputs;
 
-	@XmlAccessorType(XmlAccessType.NONE)
+	public Config(ControllerConfig controller, Input input, List<Output> outputs) {
+		this.controller = controller;
+		this.input = input;
+		this.outputs = outputs;
+	}
+
+	public ControllerConfig getController() {
+		return controller;
+	}
+
+	public Input getInput() {
+		return input;
+	}
+
+	public List<Output> getOutputs() {
+		return outputs == null ? null : Collections.unmodifiableList(outputs);
+	}
+
 	static class ControllerConfig {
-		@XmlElement(required=true)
-		long pollingInterval;
+		
+		private long pollingInterval;
+		
+		public ControllerConfig(long pollingInterval) {
+			this.pollingInterval = pollingInterval;
+		}
+
+		public long getPollingInterval() {
+			return pollingInterval;
+		}
+		
 	}
 	
-	@XmlAccessorType(XmlAccessType.NONE)
 	static class Input {
-		@XmlElement(name="class", required=true)
-		String className;
+
+		private final String className;
 		
-		@XmlElement(name="parameter")
-		List<Parameter> parameters;
+		private final List<Parameter> parameters;
+		
+		public Input(String className, List<Parameter> parameters) {
+			this.className = className;
+			this.parameters = parameters;
+		}
+
+		public String getClassName() {
+			return className;
+		}
+
+		public List<Parameter> getParameters() {
+			return parameters == null ? null : Collections.unmodifiableList(parameters);
+		}
+		
 	}
 
-	@XmlAccessorType(XmlAccessType.NONE)
 	static class Output {
-		@XmlElement(name="class", required=true)
-		String className;
+
+		private final String className;
 		
-		@XmlElement(name="parameter")
-		List<Parameter> parameters;
+		private final List<Parameter> parameters;
+		
+		public Output(String className, List<Parameter> parameters) {
+			this.className = className;
+			this.parameters = parameters;
+		}
+
+		public String getClassName() {
+			return className;
+		}
+
+		public List<Parameter> getParameters() {
+			return parameters == null ? null : Collections.unmodifiableList(parameters);
+		}
+		
 	}
 	
-	@XmlAccessorType(XmlAccessType.NONE)
 	static class Parameter {
-		@XmlElement(required=true)
-		String param;
+
+		private final String param;
 		
-		@XmlElement(required=true)
-		String value;
+		private final String value;
+		
+		public Parameter(String param, String value) {
+			this.param = param;
+			this.value = value;
+		}
+		
+		public String getParam() {
+			return param;
+		}
+		
+		public String getValue() {
+			return value;
+		}
+		
 	}
 	
-	static Config load() {
-		Config conf = null;
-		
-		InputStream is = Config.class.getClassLoader().getResourceAsStream("jtwx.xml");
-		if (is == null) {
-			throw new RuntimeException("Unable to load jtwx.xml from classpath");
-		}
-		
-		try {
-			JAXBContext jc = JAXBContext.newInstance(Config.class);
-			Unmarshaller u = jc.createUnmarshaller();
-			conf = (Config) u.unmarshal(is);
-		} catch (JAXBException e) {
-			throw new RuntimeException("Failed to read jtwx.xml", e);
-		}
-		
-		return conf;
-	}
 }
