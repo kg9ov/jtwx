@@ -1,23 +1,24 @@
 package org.jtdev.jtwx.output;
 
-import java.util.Observable;
+import javax.annotation.PostConstruct;
 
+import org.jtdev.jtwx.WeatherReading;
 import org.jtdev.jtwx.WeatherReadingObserver;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
+@Component
+@ConditionalOnProperty(prefix = "jtwx.output", name = "stdout")
 public class Stdout implements WeatherReadingObserver {
 
 	@Override
-	public void update(Observable o, Object arg) {
+	public void update(WeatherReading wr) {
 		System.out.println(this.getClass().getName() + " update fired");
-		System.out.println(arg.toString());
+		System.out.println(wr.toString());
 	}
 
 	@Override
-	public void setParameter(String param, String value) throws Exception {
-		
-	}
-
-	@Override
+	@PostConstruct
 	public void initialize() throws Exception {
 		
 	}

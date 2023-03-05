@@ -6,8 +6,6 @@ package org.jtdev.jtwx;
  */
 public interface WeatherStation {
 
-	public void setParameter(String param, String value) throws IllegalArgumentException, WeatherStationException;
-		
 	public void connect() throws WeatherStationException;
 	
 	public void disconnect() throws WeatherStationException;

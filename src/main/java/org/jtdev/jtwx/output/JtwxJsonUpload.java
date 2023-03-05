@@ -2,10 +2,11 @@ package org.jtdev.jtwx.output;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.Observable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import javax.annotation.PostConstruct;
 
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
@@ -15,29 +16,29 @@ import org.jtdev.jtwx.WeatherReading;
 import org.jtdev.jtwx.WeatherReadingObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 
+@Component
+@ConditionalOnProperty(prefix = "jtwx.output.jtwxJsonUpload", name = "jtwxServiceUrl")
 public class JtwxJsonUpload implements WeatherReadingObserver {
 
 	private final Logger logger = LoggerFactory.getLogger(JtwxJsonUpload.class);
 	
+	@Value("${jtwx.output.jtwxJsonUpload.jtwxServiceUrl}")
 	private String jtwxServiceUrl;
 	
 	private HttpClient client;
 	private ObjectMapper objectMapper;
 
 	@Override
-	public void update(Observable o, Object arg) {
+	public void update(WeatherReading wr) {
 		String json = null;
-		CombinedSample sample = null;
-		
-		if (arg instanceof WeatherReading) {
-			sample = new CombinedSample((WeatherReading) arg);
-		} else {
-			return;
-		}
+		CombinedSample sample = new CombinedSample(wr);
 		
 		try {
 			json = objectMapper.writeValueAsString(sample);
@@ -68,18 +69,7 @@ public class JtwxJsonUpload implements WeatherReadingObserver {
 	}
 
 	@Override
-	public void setParameter(String param, String value) throws Exception {
-		if (param == null || value == null) {
-			throw new Exception("nulls not allowed");
-		}
-		if (param.equals("jtwx.json.service.url")) {
-			this.jtwxServiceUrl = value;
-		} else {
-			throw new Exception("Unknown param: " + param);
-		}
-	}
-
-	@Override
+	@PostConstruct
 	public void initialize() throws Exception {
 		if (jtwxServiceUrl == null) {
 			throw new Exception("jtwx.json.service.url must be set");

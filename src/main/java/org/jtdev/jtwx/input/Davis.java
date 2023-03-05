@@ -5,16 +5,25 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Date;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
 import org.jtdev.jtwx.WeatherReading;
 import org.jtdev.jtwx.WeatherReadingBuilder;
 import org.jtdev.jtwx.WeatherStation;
 import org.jtdev.jtwx.WeatherStationException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortInvalidPortException;
 
+@Component
+@ConditionalOnProperty(prefix = "jtwx", name = "input", havingValue = "davis")
 public class Davis implements WeatherStation {
 
+	@Value("${jtwx.input.portName}")
 	private String portName;
 
 	private SerialPort serialPort;
@@ -64,22 +73,8 @@ public class Davis implements WeatherStation {
 		super();
 	}
 
-	
 	@Override
-	public void setParameter(String param, String value)
-			throws IllegalArgumentException, WeatherStationException {
-		
-		if (param == null || value == null) {
-			throw new IllegalArgumentException("Null args not allowed");
-		}
-		
-		if (param.equals("port")) {
-			this.portName = value;
-		}
-	}
-
-
-	@Override
+	@PostConstruct
 	public void connect() throws WeatherStationException {
 		try {
 			serialPort = SerialPort.getCommPort(portName);
@@ -93,6 +88,7 @@ public class Davis implements WeatherStation {
 	}
 	
 	@Override
+	@PreDestroy
 	public void disconnect() throws WeatherStationException {
 		try {
 			if (output != null) output.close();
