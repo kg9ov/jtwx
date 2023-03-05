@@ -6,7 +6,6 @@ plugins {
 }
 
 group = 'org.jtdev'
-version = '2.0.0-SNAPSHOT'
 description = 'jtwx'
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
